@@ -96,6 +96,41 @@ class ValidationError(BaseModel):
     message: str = Field(..., description="Error message")
     value: Any = Field(..., description="Invalid value")
 
+class ForecastItem(BaseModel):
+    """Single forecast data point"""
+    date: str = Field(..., description="Forecast date in YYYY-MM-DD format")
+    predicted_value: float = Field(..., description="Predicted value")
+    lower_bound: Optional[float] = Field(None, description="Lower confidence bound")
+    upper_bound: Optional[float] = Field(None, description="Upper confidence bound")
+
+class ModelMetrics(BaseModel):
+    """Model performance metrics"""
+    mae: float = Field(..., description="Mean Absolute Error")
+    r2: float = Field(..., description="R-squared score")
+    model_type: str = Field(..., description="Type of model used (Prophet or Linear Regression)")
+
+class ForecastMetadata(BaseModel):
+    """Forecast metadata"""
+    target_column: str = Field(..., description="Target column forecasted")
+    model_metrics: ModelMetrics = Field(..., description="Model performance metrics")
+    training_data_points: int = Field(..., description="Number of data points used for training")
+    forecast_period_days: int = Field(..., description="Number of days forecasted")
+    last_historical_date: str = Field(..., description="Last date in historical data")
+    forecast_start_date: Optional[str] = Field(None, description="First forecast date")
+    forecast_end_date: Optional[str] = Field(None, description="Last forecast date")
+    generated_at: str = Field(..., description="When forecast was generated")
+
+class ForecastResponse(BaseModel):
+    """Complete forecast response"""
+    forecast: List[ForecastItem] = Field(..., description="Forecast data points")
+    metadata: ForecastMetadata = Field(..., description="Forecast metadata")
+
+class CacheStatus(BaseModel):
+    """Forecast cache status"""
+    cached_entries: int = Field(..., description="Number of cached entries")
+    cache_keys: List[str] = Field(..., description="Cache entry keys")
+    max_age_hours: int = Field(..., description="Maximum cache age in hours")
+
 class HealthResponse(BaseModel):
     """Health check response"""
     message: str = Field(..., description="Status message")

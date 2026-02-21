@@ -6,11 +6,13 @@ from typing import Optional, Dict, Any
 from datetime import date
 
 from services import revenue_service
+from services import forecast_service
 from models.schemas import (
     KPIResponse, RevenueTrendResponse, OccupancyTrendResponse,
     RevenueByHotelResponse, RevenueByChannelResponse, MarketSegmentResponse,
     ScatterDataResponse, CancellationByChannelResponse, HealthResponse,
-    AnalyticsFilters, FilteredResponse, ValidationError
+    AnalyticsFilters, FilteredResponse, ValidationError,
+    ForecastResponse, CacheStatus
 )
 
 # Setup logging
@@ -283,3 +285,54 @@ async def legacy_revenue_by_channel():
     """Legacy revenue by channel endpoint - maintains original response format"""
     result = await handle_service_error(revenue_service.get_revenue_by_channel)
     return result["data"]
+
+# Forecasting endpoints
+@app.get("/api/revenue-forecast", response_model=ForecastResponse, tags=["forecasting"])
+async def revenue_forecast(
+    days_ahead: Optional[int] = Query(30, description="Number of days to forecast (1-365)", ge=1, le=365)
+):
+    """Generate revenue forecast using Prophet or Linear Regression"""
+    try:
+        validated_days = forecast_service.validate_forecast_parameters(days_ahead)
+        result = await handle_service_error(forecast_service.get_revenue_forecast, validated_days)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/api/occupancy-forecast", response_model=ForecastResponse, tags=["forecasting"])
+async def occupancy_forecast(
+    days_ahead: Optional[int] = Query(30, description="Number of days to forecast (1-365)", ge=1, le=365)
+):
+    """Generate occupancy rate forecast using Prophet or Linear Regression"""
+    try:
+        validated_days = forecast_service.validate_forecast_parameters(days_ahead)
+        result = await handle_service_error(forecast_service.get_occupancy_forecast, validated_days)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# Forecast management endpoints
+@app.post("/api/forecast/clear-cache", response_model=Dict[str, str], tags=["forecasting"])
+async def clear_forecast_cache():
+    """Clear forecast cache to force model retraining"""
+    try:
+        forecast_service.clear_forecast_cache()
+        return {"message": "Forecast cache cleared successfully"}
+    except Exception as e:
+        logger.error(f"Error clearing forecast cache: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error clearing cache: {str(e)}"
+        )
+
+@app.get("/api/forecast/cache-status", response_model=CacheStatus, tags=["forecasting"])
+async def get_forecast_cache_status():
+    """Get current forecast cache status"""
+    try:
+        return forecast_service.get_cache_status()
+    except Exception as e:
+        logger.error(f"Error getting cache status: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting cache status: {str(e)}"
+        )
