@@ -3,16 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 import logging
 from typing import Optional, Dict, Any
-from datetime import date
+from datetime import date, datetime
 
 from services import revenue_service
 from services import forecast_service
+from services import insight_service
 from models.schemas import (
     KPIResponse, RevenueTrendResponse, OccupancyTrendResponse,
     RevenueByHotelResponse, RevenueByChannelResponse, MarketSegmentResponse,
     ScatterDataResponse, CancellationByChannelResponse, HealthResponse,
     AnalyticsFilters, FilteredResponse, ValidationError,
-    ForecastResponse, CacheStatus
+    ForecastResponse, CacheStatus, InsightsResponse
 )
 
 # Setup logging
@@ -336,3 +337,48 @@ async def get_forecast_cache_status():
             status_code=500,
             detail=f"Error getting cache status: {str(e)}"
         )
+
+@app.get("/api/insights", response_model=InsightsResponse, tags=["analytics"])
+async def get_business_insights():
+    """Generate automatic business insights from hotel revenue data"""
+    try:
+        logger.info("Generating business insights")
+        
+        # Generate insights
+        insights = insight_service.get_insights()
+        
+        # Get data period info
+        try:
+            data = insight_service.insight_service.data
+            data_period = None
+            if data is not None and not data.empty:
+                min_date = data['Date'].min().strftime('%Y-%m-%d')
+                max_date = data['Date'].max().strftime('%Y-%m-%d')
+                data_period = f"{min_date} to {max_date}"
+        except Exception as period_error:
+            logger.warning(f"Could not determine data period: {str(period_error)}")
+            data_period = None
+        
+        response = InsightsResponse(
+            insights=insights,
+            generated_at=datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
+            total_insights=len(insights),
+            data_period=data_period
+        )
+        
+        logger.info(f"Generated {len(insights)} business insights successfully")
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error generating insights: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate insights: {str(e)}")
+
+@app.post("/api/insights/refresh", tags=["analytics"])
+async def refresh_insights():
+    """Refresh insights data (useful after data updates)"""
+    try:
+        insight_service.refresh_insights()
+        return {"message": "Insights data refreshed successfully"}
+    except Exception as e:
+        logger.error(f"Error refreshing insights: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -137,6 +137,27 @@ class HealthResponse(BaseModel):
     version: str = Field(..., description="API version")
     status: str = Field(..., description="Health status")
 
+class InsightsResponse(BaseModel):
+    """Business insights response schema"""
+    insights: List[str] = Field(..., description="List of business insights")
+    generated_at: str = Field(..., description="Timestamp when insights were generated")
+    total_insights: int = Field(..., description="Total number of insights")
+    data_period: Optional[str] = Field(None, description="Data period analyzed")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "insights": [
+                    "OTA bookings generate 42% more cancellations than Direct bookings.",
+                    "Corporate segment contributes 35% of total revenue.",
+                    "December has the lowest monthly revenue, while July peaks at 25% higher."
+                ],
+                "generated_at": "2026-02-21T15:30:00Z",
+                "total_insights": 3,
+                "data_period": "2016-01-01 to 2023-12-31"
+            }
+        }
+
 # Response type aliases for better readability
 RevenueTrendResponse = List[RevenueTrendItem]
 OccupancyTrendResponse = List[OccupancyTrendItem]
