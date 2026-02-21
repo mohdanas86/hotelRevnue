@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { memo } from "react";
 import {
   IconCurrencyRupee,
   IconBed,
@@ -10,16 +10,15 @@ import {
 } from "@tabler/icons-react";
 import { KpiCard } from "@/app/dashboard/_components/KPI/KapiComponents";
 import { useKPI } from "@/hooks/use-api";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export default function KpiGrid() {
+const KpiGrid = memo(function KpiGrid() {
   const { data, loading, error, refresh } = useKPI();
 
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
+          <div key={i} className="h-28 rounded-xl bg-muted/50" />
         ))}
       </div>
     );
@@ -27,26 +26,26 @@ export default function KpiGrid() {
 
   if (error) {
     return (
-      <Alert variant="destructive">
-        <IconX className="h-4 w-4" />
-        <AlertDescription>
-          Failed to load KPI data: {error.message}
+      <div className="border border-destructive/50 rounded-lg p-4 bg-destructive/5">
+        <div className="flex items-center gap-2 text-destructive">
+          <IconX className="h-4 w-4" />
+          <span className="text-sm font-medium">Failed to load KPI data: {error.message}</span>
           <button
             onClick={refresh}
-            className="ml-2 underline hover:no-underline"
+            className="ml-2 text-xs underline hover:no-underline"
           >
             Retry
           </button>
-        </AlertDescription>
-      </Alert>
+        </div>
+      </div>
     );
   }
 
   if (!data) {
     return (
-      <Alert>
-        <AlertDescription>No KPI data available</AlertDescription>
-      </Alert>
+      <div className="border rounded-lg p-4 bg-muted/5">
+        <span className="text-sm text-muted-foreground">No KPI data available</span>
+      </div>
     );
   }
 
@@ -117,4 +116,6 @@ export default function KpiGrid() {
       />
     </div>
   );
-}
+});
+
+export default KpiGrid;

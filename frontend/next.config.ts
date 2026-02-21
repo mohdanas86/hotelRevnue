@@ -13,6 +13,12 @@ const nextConfig: NextConfig = {
     turbotrace: {
       logLevel: "error",
     },
+    // Enable partial prerendering for better performance
+    ppr: false, // Keep disabled for dashboard
+    // Optimize CSS loading
+    optimizeCss: true,
+    // Enable webVitals tracking
+    webVitalsAttribution: ["CLS", "LCP"],
   },
   
   // Compiler optimizations

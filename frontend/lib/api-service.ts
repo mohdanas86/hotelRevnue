@@ -22,6 +22,31 @@ import type {
 class APIService {
   private cache = new Map<string, CacheEntry<any>>();
   private requestMap = new Map<string, Promise<any>>();
+  private preloadQueue = new Set<string>();
+
+  /**
+   * Preload critical data in background
+   */
+  public preloadCriticalData(): void {
+    // Preload KPI data immediately as it's most critical
+    if (!this.cache.has('kpi') && !this.preloadQueue.has('kpi')) {
+      this.preloadQueue.add('kpi');
+      this.getKPI().catch(() => {
+        // Silent fail for preloading
+        this.preloadQueue.delete('kpi');
+      });
+    }
+
+    // Preload revenue trend after short delay
+    setTimeout(() => {
+      if (!this.cache.has('revenue-trend') && !this.preloadQueue.has('revenue-trend')) {
+        this.preloadQueue.add('revenue-trend');
+        this.getRevenueTrend().catch(() => {
+          this.preloadQueue.delete('revenue-trend');
+        });
+      }
+    }, 100);
+  }
 
   /**
    * Generic fetch method with retry logic and error handling
@@ -246,6 +271,14 @@ class APIError extends Error {
 
 // Export singleton instance
 export const apiService = new APIService();
+
+// Initialize preloading on client-side
+if (typeof window !== 'undefined') {
+  // Start preloading critical data when the service is imported
+  setTimeout(() => {
+    apiService.preloadCriticalData();
+  }, 0);
+}
 
 // Export types for consumers
 export type { 
