@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
-import axios from "axios";
+import { useScatterData } from "@/hooks/use-api";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { IconX } from "@tabler/icons-react";
 
 import {
   ScatterChart,
@@ -27,13 +29,6 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 
-interface ScatterData {
-  Hotel_ID: string;
-  ADR_INR: number;
-  Occupancy_Rate: number;
-  Revenue_INR: number;
-}
-
 const chartConfig = {
   scatter: {
     label: "ADR vs Occupancy",
@@ -42,25 +37,51 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function ADRvsOccupancyScatter() {
-  const [data, setData] = React.useState<ScatterData[]>([]);
+  const { data, loading, error, refresh } = useScatterData();
 
-  React.useEffect(() => {
-    axios.get("http://localhost:8000/api/scatter").then((res) => {
-      // convert occupancy to percentage
-      const formatted = res.data.map((item: ScatterData) => ({
-        ...item,
-        Occupancy_Percent: item.Occupancy_Rate * 100,
-      }));
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>ADR vs Occupancy</CardTitle>
+          <CardDescription>Shows relationship between room price and occupancy</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[350px] w-full rounded-xl bg-muted animate-pulse" />
+        </CardContent>
+      </Card>
+    );
+  }
 
-      setData(formatted);
-    });
-  }, []);
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>ADR vs Occupancy</CardTitle>
+          <CardDescription>Shows relationship between room price and occupancy</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <IconX className="h-4 w-4" />
+            <AlertDescription>
+              Failed to load scatter data: {error.message}
+              <button
+                onClick={refresh}
+                className="ml-2 underline hover:no-underline"
+              >
+                Retry
+              </button>
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>ADR vs Occupancy</CardTitle>
-
         <CardDescription>
           Shows relationship between room price and occupancy
         </CardDescription>
@@ -98,16 +119,17 @@ export function ADRvsOccupancyScatter() {
                       formatter={() => (
                         <div className="space-y-1">
                           <div>
-                            Hotel: <b>{d.Hotel_ID}</b>
+                            <strong>Hotel:</strong> {d.Hotel_ID}
                           </div>
-
-                          <div>ADR: ₹{d.ADR_INR.toLocaleString()}</div>
-
                           <div>
-                            Occupancy: {(d.Occupancy_Rate * 100).toFixed(1)}%
+                            <strong>ADR:</strong> ₹{d.ADR_INR.toLocaleString()}
                           </div>
-
-                          <div>Revenue: ₹{d.Revenue_INR.toLocaleString()}</div>
+                          <div>
+                            <strong>Occupancy:</strong> {d.Occupancy_Percent.toFixed(1)}%
+                          </div>
+                          <div>
+                            <strong>Revenue:</strong> ₹{d.Revenue_INR.toLocaleString()}
+                          </div>
                         </div>
                       )}
                     />
@@ -116,11 +138,8 @@ export function ADRvsOccupancyScatter() {
               />
 
               <Scatter
-                name="Hotels"
-                data={data}
-                fill="#f59f0b"
-                stroke="#d97706"
-                strokeWidth={1}
+                data={data || []}
+                fill="var(--primary)"
               />
             </ScatterChart>
           </ResponsiveContainer>

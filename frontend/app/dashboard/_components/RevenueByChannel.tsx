@@ -2,7 +2,9 @@
 
 import * as React from "react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import axios from "axios"
+import { useRevenueByChannel } from "@/hooks/use-api"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { IconX } from "@tabler/icons-react"
 
 import {
   Card,
@@ -27,17 +29,48 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export function RevenueByChannelChart() {
+  const { data, loading, error, refresh } = useRevenueByChannel();
 
-  const [data, setData] = React.useState([])
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Revenue by Channel</CardTitle>
+          <CardDescription>Revenue from OTA, Website, Walk-in, Agent</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] w-full rounded-xl bg-muted animate-pulse" />
+        </CardContent>
+      </Card>
+    );
+  }
 
-  React.useEffect(() => {
-    axios.get("http://localhost:8000/api/revenue-by-channel")
-      .then(res => setData(res.data))
-      .catch(err => console.error(err))
-  }, [])
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Revenue by Channel</CardTitle>
+          <CardDescription>Revenue from OTA, Website, Walk-in, Agent</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <IconX className="h-4 w-4" />
+            <AlertDescription>
+              Failed to load channel revenue data: {error.message}
+              <button
+                onClick={refresh}
+                className="ml-2 underline hover:no-underline"
+              >
+                Retry
+              </button>
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-
     <Card>
       <CardHeader>
         <CardTitle>Revenue by Channel</CardTitle>
@@ -47,15 +80,12 @@ export function RevenueByChannelChart() {
       </CardHeader>
 
       <CardContent>
-
         <ChartContainer config={chartConfig} className="h-[300px] w-full">
-
           <BarChart
             layout="vertical"
-            data={data}
+            data={data || []}
             margin={{ left: 20, right: 20 }}
           >
-
             <CartesianGrid horizontal={false} />
 
             <XAxis
@@ -87,12 +117,9 @@ export function RevenueByChannelChart() {
               fill="var(--chart-1)"
               radius={4}
             />
-
           </BarChart>
-
         </ChartContainer>
-
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React from "react";
 import {
   IconCurrencyRupee,
   IconBed,
@@ -9,42 +9,13 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { KpiCard } from "@/app/dashboard/_components/KPI/KapiComponents";
-
-interface KPIData {
-  total_revenue: number;
-  total_revenue_change: number;
-
-  avg_occupancy: number;
-  avg_occupancy_change: number;
-
-  avg_adr: number;
-  avg_adr_change: number;
-
-  avg_revpar: number;
-  avg_revpar_change: number;
-
-  total_cancellations: number;
-  total_cancellations_change: number;
-}
+import { useKPI } from "@/hooks/use-api";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function KpiGrid() {
-  const [data, setData] = useState<KPIData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, loading, error, refresh } = useKPI();
 
-  useEffect(() => {
-    const controller = new AbortController();
-
-    fetch("http://localhost:8000/api/kpi", {
-      signal: controller.signal,
-    })
-      .then((res) => res.json())
-      .then((res) => setData(res))
-      .finally(() => setLoading(false));
-
-    return () => controller.abort();
-  }, []);
-
-  if (loading)
+  if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         {Array.from({ length: 5 }).map((_, i) => (
@@ -52,8 +23,32 @@ export default function KpiGrid() {
         ))}
       </div>
     );
+  }
 
-  if (!data) return <div>Failed to load KPI data</div>;
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <IconX className="h-4 w-4" />
+        <AlertDescription>
+          Failed to load KPI data: {error.message}
+          <button
+            onClick={refresh}
+            className="ml-2 underline hover:no-underline"
+          >
+            Retry
+          </button>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!data) {
+    return (
+      <Alert>
+        <AlertDescription>No KPI data available</AlertDescription>
+      </Alert>
+    );
+  }
 
   /* ---------- Helpers ---------- */
 

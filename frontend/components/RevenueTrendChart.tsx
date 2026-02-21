@@ -4,6 +4,7 @@ import * as React from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useRevenueTrend } from "@/hooks/use-api";
 
 import {
   Card,
@@ -30,22 +31,10 @@ import {
 } from "@/components/ui/select";
 
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { IconX } from "@tabler/icons-react";
 
-/**
- * API Response Format
- */
-interface ApiRevenueData {
-  Date: string;
-  Revenue_INR: number;
-}
-
-/**
- * Chart Format
- */
-interface RevenueData {
-  date: string;
-  revenue: number;
-}
+import type { ChartRevenueTrend } from "@/hooks/use-api";
 
 const chartConfig = {
   revenue: {
@@ -56,29 +45,9 @@ const chartConfig = {
 
 export function RevenueTrendChart() {
   const isMobile = useIsMobile();
-
   const [timeRange, setTimeRange] = React.useState("90d");
 
-  const [data, setData] = React.useState<RevenueData[]>([]);
-
-  /**
-   * Fetch and transform API data
-   */
-  React.useEffect(() => {
-    fetch("http://localhost:8000/api/revenue-trend")
-      .then((res) => res.json())
-
-      .then((apiData: ApiRevenueData[]) => {
-        const transformed: RevenueData[] = apiData.map((item) => ({
-          date: item.Date,
-          revenue: item.Revenue_INR,
-        }));
-
-        setData(transformed);
-      })
-
-      .catch(console.error);
-  }, []);
+  const { data, loading, error, refresh } = useRevenueTrend();
 
   React.useEffect(() => {
     if (isMobile) {
@@ -90,21 +59,58 @@ export function RevenueTrendChart() {
    * Filter data by selected time range
    */
   const filteredData = React.useMemo(() => {
-    if (!data.length) return [];
+    if (!data?.length) return [];
 
     const referenceDate = new Date(data[data.length - 1].date);
-
     let days = 90;
 
     if (timeRange === "30d") days = 30;
     if (timeRange === "7d") days = 7;
 
     const startDate = new Date(referenceDate);
-
     startDate.setDate(startDate.getDate() - days);
 
     return data.filter((item) => new Date(item.date) >= startDate);
   }, [data, timeRange]);
+
+  if (loading) {
+    return (
+      <Card className="@container/card">
+        <CardHeader>
+          <CardTitle>Revenue Trend</CardTitle>
+          <CardDescription>Hotel revenue over time</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] w-full rounded-xl bg-muted animate-pulse" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="@container/card">
+        <CardHeader>
+          <CardTitle>Revenue Trend</CardTitle>
+          <CardDescription>Hotel revenue over time</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <IconX className="h-4 w-4" />
+            <AlertDescription>
+              Failed to load revenue trend: {error.message}
+              <button
+                onClick={refresh}
+                className="ml-2 underline hover:no-underline"
+              >
+                Retry
+              </button>
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="@container/card">

@@ -1,7 +1,9 @@
 "use client"
 
 import * as React from "react"
-import axios from "axios"
+import { useCancellationsByChannel } from "@/hooks/use-api"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { IconX } from "@tabler/icons-react"
 
 import {
   BarChart,
@@ -27,15 +29,6 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart"
 
-
-
-interface CancellationData {
-  Booking_Channel: string
-  Cancellation_Count: number
-}
-
-
-
 const chartConfig = {
   cancellations: {
     label: "Cancellations",
@@ -46,59 +39,72 @@ const chartConfig = {
 
 
 export function CancellationChart() {
+  const { data, loading, error, refresh } = useCancellationsByChannel();
 
-  const [data, setData] = React.useState<CancellationData[]>([])
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Cancellations by Booking Channel</CardTitle>
+          <CardDescription>Identify channels with highest cancellation rates</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[350px] w-full rounded-xl bg-muted animate-pulse" />
+        </CardContent>
+      </Card>
+    );
+  }
 
-  React.useEffect(() => {
-
-    axios
-      .get("http://localhost:8000/api/cancellations-by-channel")
-      .then((res) => setData(res.data))
-
-  }, [])
-
-
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Cancellations by Booking Channel</CardTitle>
+          <CardDescription>Identify channels with highest cancellation rates</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <IconX className="h-4 w-4" />
+            <AlertDescription>
+              Failed to load cancellation data: {error.message}
+              <button
+                onClick={refresh}
+                className="ml-2 underline hover:no-underline"
+              >
+                Retry
+              </button>
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-
     <Card>
-
       <CardHeader>
-
         <CardTitle>
           Cancellations by Booking Channel
         </CardTitle>
-
         <CardDescription>
           Identify channels with highest cancellation rates
         </CardDescription>
-
       </CardHeader>
 
-
-
       <CardContent>
-
         <ChartContainer
           config={chartConfig}
           className="h-[350px] w-full"
         >
-
           <ResponsiveContainer width="100%" height="100%">
-
-            <BarChart data={data}>
-
+            <BarChart data={data || []}>
               <CartesianGrid vertical={false} />
-
-
 
               <XAxis
                 dataKey="Booking_Channel"
                 tickLine={false}
                 axisLine={false}
               />
-
-
 
               <YAxis
                 tickFormatter={(value) =>
@@ -108,51 +114,33 @@ export function CancellationChart() {
                 axisLine={false}
               />
 
-
-
               <Tooltip
                 cursor={false}
                 content={({ active, payload }) => {
-
                   if (!active || !payload?.length) return null
 
                   const d = payload[0].payload
 
                   return (
-
                     <ChartTooltipContent
-
                       formatter={() =>
                         `Cancellations: ${d.Cancellation_Count.toLocaleString()}`
                       }
-
                       label={d.Booking_Channel}
-
                     />
-
                   )
-
                 }}
               />
-
-
 
               <Bar
                 dataKey="Cancellation_Count"
                 fill="var(--destructive)"
                 radius={[6, 6, 0, 0]}
               />
-
             </BarChart>
-
           </ResponsiveContainer>
-
         </ChartContainer>
-
       </CardContent>
-
     </Card>
-
-  )
-
+  );
 }
