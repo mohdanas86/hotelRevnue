@@ -2,6 +2,8 @@ import pandas as pd
 import logging
 import os
 from pathlib import Path
+from typing import Optional, List, Dict, Any
+from datetime import date
 
 logger = logging.getLogger(__name__)
 
@@ -75,3 +77,64 @@ def load_data() -> pd.DataFrame:
     except Exception as e:
         logger.error(f"Error loading data: {str(e)}")
         raise
+
+def apply_filters(df: pd.DataFrame, filters: Dict[str, Any]) -> pd.DataFrame:
+    """Apply dynamic filters to dataframe"""
+    filtered_df = df.copy()
+    
+    try:
+        # Filter by date range
+        if filters.get('start_date'):
+            filtered_df = filtered_df[filtered_df['Date'] >= pd.to_datetime(filters['start_date'])]
+        
+        if filters.get('end_date'):
+            filtered_df = filtered_df[filtered_df['Date'] <= pd.to_datetime(filters['end_date'])]
+        
+        # Filter by hotel_id (supports multiple values)
+        if filters.get('hotel_id'):
+            hotel_ids = [id.strip() for id in str(filters['hotel_id']).split(',')]
+            filtered_df = filtered_df[filtered_df['Hotel_ID'].astype(str).isin(hotel_ids)]
+        
+        # Filter by booking channel (supports multiple values)
+        if filters.get('booking_channel'):
+            channels = [ch.strip() for ch in str(filters['booking_channel']).split(',')]
+            filtered_df = filtered_df[filtered_df['Booking_Channel'].isin(channels)]
+        
+        # Filter by market segment (supports multiple values)
+        if filters.get('market_segment'):
+            segments = [seg.strip() for seg in str(filters['market_segment']).split(',')]
+            filtered_df = filtered_df[filtered_df['Market_Segment'].isin(segments)]
+        
+        logger.info(f"Applied filters: {filters}, Resulting records: {len(filtered_df)}")
+        return filtered_df
+        
+    except Exception as e:
+        logger.error(f"Error applying filters: {str(e)}")
+        raise ValueError(f"Invalid filter parameters: {str(e)}")
+
+def get_filter_metadata(df: pd.DataFrame, original_count: int) -> Dict[str, Any]:
+    """Generate metadata about applied filters"""
+    if df.empty:
+        return {
+            "total_records": 0,
+            "date_range": None,
+            "hotels": [],
+            "channels": [],
+            "segments": []
+        }
+    
+    date_range = None
+    if 'Date' in df.columns and not df['Date'].empty:
+        date_range = {
+            "start": df['Date'].min().strftime('%Y-%m-%d'),
+            "end": df['Date'].max().strftime('%Y-%m-%d')
+        }
+    
+    return {
+        "total_records": len(df),
+        "original_records": original_count,
+        "date_range": date_range,
+        "hotels": sorted(df['Hotel_ID'].astype(str).unique().tolist()),
+        "channels": sorted(df['Booking_Channel'].unique().tolist()),
+        "segments": sorted(df['Market_Segment'].unique().tolist())
+    }

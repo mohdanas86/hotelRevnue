@@ -2,9 +2,10 @@
 Pydantic schemas for API request/response models
 """
 
-from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
-from datetime import datetime
+from pydantic import BaseModel, Field, validator
+from typing import List, Dict, Any, Optional, Union
+from datetime import datetime, date
+import re
 
 class KPIResponse(BaseModel):
     """KPI metrics response schema"""
@@ -51,12 +52,49 @@ class CancellationByChannelItem(BaseModel):
     Booking_Channel: str = Field(..., description="Booking channel name")
     Cancellation_Count: int = Field(..., description="Number of cancellations")
 
-class APIError(BaseModel):
+class AnalyticsFilters(BaseModel):
+    """Common filters for analytics endpoints"""
+    hotel_id: Optional[str] = Field(None, description="Filter by hotel ID (comma-separated for multiple)")
+    start_date: Optional[date] = Field(None, description="Start date for filtering (YYYY-MM-DD)")
+    end_date: Optional[date] = Field(None, description="End date for filtering (YYYY-MM-DD)")
+    booking_channel: Optional[str] = Field(None, description="Filter by booking channel (comma-separated for multiple)")
+    market_segment: Optional[str] = Field(None, description="Filter by market segment (comma-separated for multiple)")
+    
+    @validator('start_date', 'end_date', pre=True)
+    def parse_date(cls, v):
+        """Parse date from string if needed"""
+        if isinstance(v, str):
+            try:
+                return datetime.strptime(v, '%Y-%m-%d').date()
+            except ValueError:
+                raise ValueError('Date must be in YYYY-MM-DD format')
+        return v
+    
+    @validator('end_date')
+    def validate_date_range(cls, v, values):
+        """Ensure end_date is after start_date"""
+        if v and 'start_date' in values and values['start_date']:
+            if v < values['start_date']:
+                raise ValueError('end_date must be after start_date')
+        return v
+
+class FilteredResponse(BaseModel):
+    """Base response with filter metadata"""
+    data: List[Dict[str, Any]] = Field(..., description="Filtered data")
+    filters_applied: Dict[str, Any] = Field(..., description="Applied filters summary")
+    total_records: int = Field(..., description="Total records after filtering")
+    date_range: Optional[Dict[str, str]] = Field(None, description="Actual date range in results")
     """Standard API error response"""
     error: bool = True
     message: str = Field(..., description="Error message")
     code: str = Field(..., description="Error code")
     details: Optional[Dict[str, Any]] = Field(None, description="Additional error details")
+
+class ValidationError(BaseModel):
+    """Validation error details"""
+    field: str = Field(..., description="Field name with error")
+    message: str = Field(..., description="Error message")
+    value: Any = Field(..., description="Invalid value")
 
 class HealthResponse(BaseModel):
     """Health check response"""
