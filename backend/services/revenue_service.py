@@ -63,11 +63,36 @@ def get_occupancy_trend() -> List[Dict[str, Any]]:
 
 # Revenue by Hotel
 def get_revenue_by_hotel() -> List[Dict[str, Any]]:
-    """Get revenue by hotel with error handling"""
+    """Get revenue by hotel with error handling and enhanced data"""
     try:
         df = get_cached_data()
-        grouped = df.groupby("Hotel_ID")["Revenue_INR"].sum().reset_index()
-        return grouped.to_dict(orient="records")
+        
+        # Enhanced aggregation with more metrics
+        grouped = df.groupby("Hotel_ID").agg({
+            "Revenue_INR": "sum",
+            "Occupancy_Rate": "mean", 
+            "ADR_INR": "mean",
+            "RevPAR_INR": "mean",
+            "Cancellation_Count": "sum"
+        }).reset_index()
+        
+        # Add hotel names and performance metrics
+        grouped["Hotel_Name"] = grouped["Hotel_ID"].apply(lambda x: f"Hotel {x}")
+        grouped["Performance_Score"] = (
+            (grouped["Revenue_INR"] / grouped["Revenue_INR"].max()) * 0.6 +
+            (grouped["Occupancy_Rate"] / 100) * 0.4
+        ).round(3)
+        
+        # Sort by revenue (highest first) and limit to top performers
+        result = grouped.nlargest(15, "Revenue_INR")
+        
+        # Round numeric values for better display
+        result["Revenue_INR"] = result["Revenue_INR"].round(2)
+        result["Occupancy_Rate"] = result["Occupancy_Rate"].round(1)
+        result["ADR_INR"] = result["ADR_INR"].round(2)
+        result["RevPAR_INR"] = result["RevPAR_INR"].round(2)
+        
+        return result.to_dict(orient="records")
     except Exception as e:
         logger.error(f"Error getting revenue by hotel: {e}")
         raise
@@ -75,11 +100,44 @@ def get_revenue_by_hotel() -> List[Dict[str, Any]]:
 
 # Revenue by Booking Channel
 def get_revenue_by_channel() -> List[Dict[str, Any]]:
-    """Get revenue by booking channel with error handling"""
+    """Get revenue by booking channel with error handling and enhanced data"""
     try:
         df = get_cached_data()
-        grouped = df.groupby("Booking_Channel")["Revenue_INR"].sum().reset_index()
-        return grouped.to_dict(orient="records")
+        
+        # Enhanced aggregation with more metrics
+        grouped = df.groupby("Booking_Channel").agg({
+            "Revenue_INR": "sum",
+            "Occupancy_Rate": "mean",
+            "ADR_INR": "mean", 
+            "RevPAR_INR": "mean",
+            "Cancellation_Count": "sum",
+            "Hotel_ID": "nunique"  # Count unique hotels per channel
+        }).reset_index()
+        
+        # Rename for clarity
+        grouped.rename(columns={"Hotel_ID": "Hotel_Count"}, inplace=True)
+        
+        # Calculate channel efficiency score
+        grouped["Efficiency_Score"] = (
+            (grouped["Revenue_INR"] / grouped["Revenue_INR"].max()) * 0.5 +
+            ((100 - grouped["Cancellation_Count"]) / 100) * 0.3 +
+            (grouped["Occupancy_Rate"] / 100) * 0.2
+        ).round(3)
+        
+        # Calculate market share percentage
+        total_revenue = grouped["Revenue_INR"].sum()
+        grouped["Market_Share"] = ((grouped["Revenue_INR"] / total_revenue) * 100).round(1)
+        
+        # Sort by revenue (highest first)
+        result = grouped.sort_values("Revenue_INR", ascending=False)
+        
+        # Round numeric values for better display
+        result["Revenue_INR"] = result["Revenue_INR"].round(2)
+        result["Occupancy_Rate"] = result["Occupancy_Rate"].round(1)
+        result["ADR_INR"] = result["ADR_INR"].round(2)
+        result["RevPAR_INR"] = result["RevPAR_INR"].round(2)
+        
+        return result.to_dict(orient="records")
     except Exception as e:
         logger.error(f"Error getting revenue by channel: {e}")
         raise

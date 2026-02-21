@@ -4,15 +4,9 @@ const nextConfig: NextConfig = {
   // Enable React Strict Mode for better development experience
   reactStrictMode: true,
   
-  // Optimize for performance
-  swcMinify: true,
-  
   // Enable experimental features for better performance
   experimental: {
     optimizePackageImports: ["@tabler/icons-react", "recharts"],
-    turbotrace: {
-      logLevel: "error",
-    },
     // Enable partial prerendering for better performance
     ppr: false, // Keep disabled for dashboard
     // Optimize CSS loading
@@ -20,6 +14,9 @@ const nextConfig: NextConfig = {
     // Enable webVitals tracking
     webVitalsAttribution: ["CLS", "LCP"],
   },
+  
+  // Empty turbopack config to silence webpack/turbopack warning
+  turbopack: {},
   
   // Compiler optimizations
   compiler: {

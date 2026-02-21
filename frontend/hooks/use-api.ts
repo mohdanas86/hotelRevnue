@@ -6,6 +6,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../lib/api-service';
 import type { APIError } from '../lib/api-service';
 
+// Re-export types for convenience
+export type { ChartRevenueTrend, ChartOccupancyTrend, ChartScatterData } from '../lib/types';
+
 interface UseAPIState<T> {
   data: T | null;
   loading: boolean;
