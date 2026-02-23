@@ -132,7 +132,9 @@ class APIService {
     ttl: number
   ): Promise<T> {
     try {
+      console.log(`[API] Fetching data for: ${cacheKey}`);
       const data = await fetcher();
+      console.log(`[API] Successfully fetched data for: ${cacheKey}`, data);
       
       // Cache the result
       this.cache.set(cacheKey, {
@@ -143,6 +145,7 @@ class APIService {
       
       return data;
     } catch (error) {
+      console.error(`[API] Error fetching data for: ${cacheKey}`, error);
       // Remove failed request from cache
       this.cache.delete(cacheKey);
       throw error;
@@ -164,24 +167,45 @@ class APIService {
    * Get KPI data
    */
   public async getKPI(): Promise<KPIData> {
-    return this.getCachedData(
+    const response = await this.getCachedData(
       'kpi',
-      () => this.fetchWithRetry<KPIData>(API_ENDPOINTS.KPI),
+      () => this.fetchWithRetry<any>(API_ENDPOINTS.KPI),
       CACHE_CONFIG.KPI_TTL
     );
+
+    console.log('[API] KPI Response:', response);
+
+    // Handle both direct object and wrapped data
+    const data = response?.data ? response : response;
+    
+    // Validate we have the expected KPI structure
+    if (!data || typeof data !== 'object') {
+      console.warn('Invalid KPI data format:', data);
+      throw new Error('Invalid KPI data received from server');
+    }
+
+    return data as KPIData;
   }
 
   /**
    * Get revenue trend data and transform for charts
    */
   public async getRevenueTrend(): Promise<ChartRevenueTrend[]> {
-    const data = await this.getCachedData(
+    const response = await this.getCachedData(
       'revenue-trend',
-      () => this.fetchWithRetry<RevenueTrendItem[]>(API_ENDPOINTS.REVENUE_TREND),
+      () => this.fetchWithRetry<any>(API_ENDPOINTS.REVENUE_TREND),
       CACHE_CONFIG.TREND_TTL
     );
 
-    // Transform for chart consumption
+    // Handle both direct arrays and wrapped data
+    const data = Array.isArray(response) ? response : response?.data || [];
+
+    // Validate data is an array and transform for chart consumption
+    if (!Array.isArray(data)) {
+      console.warn('Invalid revenue trend data format:', data);
+      return [];
+    }
+
     return data.map(item => ({
       date: item.Date,
       revenue: item.Revenue_INR,
@@ -192,11 +216,20 @@ class APIService {
    * Get occupancy trend data and transform for charts
    */
   public async getOccupancyTrend(): Promise<ChartOccupancyTrend[]> {
-    const data = await this.getCachedData(
+    const response = await this.getCachedData(
       'occupancy-trend',
-      () => this.fetchWithRetry<OccupancyTrendItem[]>(API_ENDPOINTS.OCCUPANCY_TREND),
+      () => this.fetchWithRetry<any>(API_ENDPOINTS.OCCUPANCY_TREND),
       CACHE_CONFIG.TREND_TTL
     );
+
+    // Handle both direct arrays and wrapped data
+    const data = Array.isArray(response) ? response : response?.data || [];
+
+    // Validate data is an array and transform for chart consumption
+    if (!Array.isArray(data)) {
+      console.warn('Invalid occupancy trend data format:', data);
+      return [];
+    }
 
     return data.map(item => ({
       date: item.Date,
@@ -208,42 +241,83 @@ class APIService {
    * Get revenue by hotel data
    */
   public async getRevenueByHotel(): Promise<RevenueByHotelItem[]> {
-    return this.getCachedData(
+    const response = await this.getCachedData(
       'revenue-by-hotel',
-      () => this.fetchWithRetry<RevenueByHotelItem[]>(API_ENDPOINTS.REVENUE_BY_HOTEL)
+      () => this.fetchWithRetry<any>(API_ENDPOINTS.REVENUE_BY_HOTEL)
     );
+
+    // Handle both direct arrays and wrapped data
+    const data = Array.isArray(response) ? response : response?.data || [];
+
+    // Validate data is an array
+    if (!Array.isArray(data)) {
+      console.warn('Invalid revenue by hotel data format:', data);
+      return [];
+    }
+
+    return data;
   }
 
   /**
    * Get revenue by channel data
    */
   public async getRevenueByChannel(): Promise<RevenueByChannelItem[]> {
-    return this.getCachedData(
+    const response = await this.getCachedData(
       'revenue-by-channel',
-      () => this.fetchWithRetry<RevenueByChannelItem[]>(API_ENDPOINTS.REVENUE_BY_CHANNEL)
+      () => this.fetchWithRetry<any>(API_ENDPOINTS.REVENUE_BY_CHANNEL)
     );
+
+    // Handle both direct arrays and wrapped data
+    const data = Array.isArray(response) ? response : response?.data || [];
+
+    // Validate data is an array
+    if (!Array.isArray(data)) {
+      console.warn('Invalid revenue by channel data format:', data);
+      return [];
+    }
+
+    return data;
   }
 
   /**
    * Get market segment data
    */
   public async getMarketSegment(): Promise<MarketSegmentItem[]> {
-    return this.getCachedData(
+    const response = await this.getCachedData(
       'market-segment',
-      () => this.fetchWithRetry<MarketSegmentItem[]>(API_ENDPOINTS.MARKET_SEGMENT)
+      () => this.fetchWithRetry<any>(API_ENDPOINTS.MARKET_SEGMENT)
     );
+
+    // Handle both direct arrays and wrapped data
+    const data = Array.isArray(response) ? response : response?.data || [];
+
+    // Validate data is an array
+    if (!Array.isArray(data)) {
+      console.warn('Invalid market segment data format:', data);
+      return [];
+    }
+
+    return data;
   }
 
   /**
    * Get scatter plot data and transform for charts
    */
   public async getScatterData(): Promise<ChartScatterData[]> {
-    const data = await this.getCachedData(
+    const response = await this.getCachedData(
       'scatter',
-      () => this.fetchWithRetry<ScatterDataItem[]>(API_ENDPOINTS.SCATTER)
+      () => this.fetchWithRetry<any>(API_ENDPOINTS.SCATTER)
     );
 
-    // Transform for chart consumption
+    // Handle both direct arrays and wrapped data
+    const data = Array.isArray(response) ? response : response?.data || [];
+
+    // Validate data is an array and transform for chart consumption
+    if (!Array.isArray(data)) {
+      console.warn('Invalid scatter data format:', data);
+      return [];
+    }
+
     return data.map(item => ({
       ...item,
       Occupancy_Percent: item.Occupancy_Rate * 100,
@@ -254,10 +328,21 @@ class APIService {
    * Get cancellation by channel data
    */
   public async getCancellationsByChannel(): Promise<CancellationByChannelItem[]> {
-    return this.getCachedData(
+    const response = await this.getCachedData(
       'cancellations-by-channel',
-      () => this.fetchWithRetry<CancellationByChannelItem[]>(API_ENDPOINTS.CANCELLATIONS_BY_CHANNEL)
+      () => this.fetchWithRetry<any>(API_ENDPOINTS.CANCELLATIONS_BY_CHANNEL)
     );
+
+    // Handle both direct arrays and wrapped data
+    const data = Array.isArray(response) ? response : response?.data || [];
+
+    // Validate data is an array
+    if (!Array.isArray(data)) {
+      console.warn('Invalid cancellation by channel data format:', data);
+      return [];
+    }
+
+    return data;
   }
 }
 

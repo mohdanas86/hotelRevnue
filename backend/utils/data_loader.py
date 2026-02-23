@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import logging
 import os
 from pathlib import Path
@@ -41,12 +42,59 @@ def validate_data(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
+def generate_sample_data() -> pd.DataFrame:
+    """Generate sample hotel revenue data for testing when main data file is not available"""
+    import numpy as np
+    from datetime import datetime, timedelta
+    
+    logger.info("Generating sample data for testing")
+    
+    # Generate sample data for last 30 days
+    start_date = datetime.now() - timedelta(days=30)
+    dates = [start_date + timedelta(days=i) for i in range(30)]
+    
+    hotels = ['H101', 'H102', 'H103', 'H104', 'H105']
+    channels = ['Direct', 'OTA', 'Travel Agent', 'Corporate']
+    segments = ['Business', 'Leisure', 'Group']
+    
+    sample_data = []
+    
+    for date in dates:
+        for hotel in hotels:
+            # Generate realistic hotel data
+            rooms_available = np.random.randint(80, 200)
+            occupancy_rate = np.random.uniform(0.4, 0.95)
+            rooms_sold = int(rooms_available * occupancy_rate)
+            adr = np.random.uniform(3500, 6000)  # INR
+            revenue = rooms_sold * adr
+            revpar = revenue / rooms_available
+            cancellations = np.random.randint(0, int(rooms_sold * 0.1))
+            
+            sample_data.append({
+                'Date': date.strftime('%d-%m-%Y'),
+                'Hotel_ID': hotel,
+                'Rooms_Available': rooms_available,
+                'Rooms_Sold': rooms_sold,
+                'Occupancy_Rate': round(occupancy_rate, 3),
+                'ADR_INR': round(adr, 2),
+                'RevPAR_INR': round(revpar, 2),
+                'Revenue_INR': round(revenue, 2),
+                'Cancellation_Count': cancellations,
+                'Market_Segment': np.random.choice(segments),
+                'Booking_Channel': np.random.choice(channels)
+            })
+    
+    df = pd.DataFrame(sample_data)
+    df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y')
+    return df
+
 def load_data() -> pd.DataFrame:
     """Load and process hotel revenue data with error handling"""
     try:
         # Check if file exists
         if not os.path.exists(DATA_PATH):
-            raise FileNotFoundError(f"Data file not found: {DATA_PATH}")
+            logger.warning(f"Data file not found: {DATA_PATH}. Using sample data instead.")
+            return generate_sample_data()
         
         logger.info(f"Loading data from {DATA_PATH}")
         

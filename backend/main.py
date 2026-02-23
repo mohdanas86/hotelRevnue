@@ -338,6 +338,31 @@ async def get_forecast_cache_status():
             detail=f"Error getting cache status: {str(e)}"
         )
 
+@app.get("/api/debug/data-info", response_model=Dict[str, Any], tags=["debug"])
+async def data_info():
+    """Get information about the loaded dataset for debugging"""
+    try:
+        from utils.data_loader import load_data
+        df = load_data()
+        
+        return {
+            "total_rows": len(df),
+            "columns": list(df.columns),
+            "date_range": {
+                "min_date": df["Date"].min().strftime("%Y-%m-%d") if not df.empty else None,
+                "max_date": df["Date"].max().strftime("%Y-%m-%d") if not df.empty else None
+            },
+            "sample_data": df.head(3).to_dict(orient="records") if not df.empty else [],
+            "hotels": list(df["Hotel_ID"].unique()[:5]) if not df.empty else [],
+            "data_file_exists": True
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "data_file_exists": False,
+            "total_rows": 0
+        }
+
 @app.get("/api/insights", response_model=InsightsResponse, tags=["analytics"])
 async def get_business_insights():
     """Generate automatic business insights from hotel revenue data"""

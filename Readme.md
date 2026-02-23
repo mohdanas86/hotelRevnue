@@ -1,3 +1,13 @@
+# Start frontend
+```
+cd frontend; npm run dev
+```
+---
+# Start backend
+```
+cd backend; ./venv/scripts/activate; uvicorn main:app --reload
+```
+
 ## Create a vertual enviornment
 ```python
 python -m venv venv

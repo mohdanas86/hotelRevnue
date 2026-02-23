@@ -53,7 +53,7 @@ export const RevenueByHotelChart = memo(function RevenueByHotelChart() {
 
   // Memoize processed data for better performance
   const processedData = useMemo(() => {
-    if (!data) return [];
+    if (!data || !Array.isArray(data)) return [];
 
     // Validate and clean the data first
     const validData = (data as RevenueData[])

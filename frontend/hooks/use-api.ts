@@ -29,11 +29,14 @@ function useAPIData<T>(
 
   const fetchData = useCallback(async () => {
     try {
+      console.log('Starting API fetch...');
       setLoading(true);
       setError(null);
       const result = await fetcher();
+      console.log('API fetch successful:', result);
       setData(result);
     } catch (err) {
+      console.error('API fetch failed:', err);
       setError(err as APIError);
       console.error('API Error:', err);
     } finally {

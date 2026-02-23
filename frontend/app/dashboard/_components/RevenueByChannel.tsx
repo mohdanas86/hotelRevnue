@@ -55,7 +55,7 @@ export const RevenueByChannelChart = memo(function RevenueByChannelChart() {
 
   // Memoize processed data and statistics
   const processedData = useMemo(() => {
-    if (!data) return { channels: [], stats: null };
+    if (!data || !Array.isArray(data)) return { channels: [], stats: null };
 
     // Validate and clean the data first
     const validChannels = (data as ChannelData[])
