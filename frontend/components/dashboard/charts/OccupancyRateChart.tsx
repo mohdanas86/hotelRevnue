@@ -51,13 +51,13 @@ export const OccupancyRateChart = React.memo(function OccupancyRateChart({ filte
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                     <XAxis
                         dataKey="label"
-                        tick={{ fontSize: 11 }}
+                        tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                         tickLine={false}
                         axisLine={false}
                         interval="preserveStartEnd"
                     />
                     <YAxis
-                        tick={{ fontSize: 11 }}
+                        tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                         tickLine={false}
                         axisLine={false}
                         tickFormatter={(v) => `${v}%`}

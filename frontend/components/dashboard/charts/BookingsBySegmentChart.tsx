@@ -52,10 +52,10 @@ export const BookingsBySegmentChart = React.memo(function BookingsBySegmentChart
             <ChartContainer config={chartConfig} className="h-[280px] w-full">
                 <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} tickLine={false} axisLine={false} />
                     <YAxis
                         yAxisId="bookings"
-                        tick={{ fontSize: 11 }}
+                        tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                         tickLine={false}
                         axisLine={false}
                         tickFormatter={(v) => formatNumber(v)}
@@ -64,7 +64,7 @@ export const BookingsBySegmentChart = React.memo(function BookingsBySegmentChart
                     <YAxis
                         yAxisId="revenue"
                         orientation="right"
-                        tick={{ fontSize: 11 }}
+                        tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                         tickLine={false}
                         axisLine={false}
                         tickFormatter={(v) => `₹${(v / 1_000_000).toFixed(0)}M`}

@@ -50,7 +50,7 @@ export const RevenueByHotelChart = React.memo(function RevenueByHotelChart({ fil
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" horizontal={false} />
                     <XAxis
                         type="number"
-                        tick={{ fontSize: 11 }}
+                        tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                         tickLine={false}
                         axisLine={false}
                         tickFormatter={(v) => `₹${(v / 1_000_000).toFixed(0)}M`}
@@ -58,7 +58,7 @@ export const RevenueByHotelChart = React.memo(function RevenueByHotelChart({ fil
                     <YAxis
                         type="category"
                         dataKey="name"
-                        tick={{ fontSize: 11 }}
+                        tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                         tickLine={false}
                         axisLine={false}
                         width={48}
