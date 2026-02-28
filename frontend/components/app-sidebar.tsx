@@ -24,14 +24,14 @@ const data = {
   // },
   navMain: [
     {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: IconDashboard,
-    },
-    {
       title: "Home",
       url: "/",
       icon: IconHome,
+    },
+    {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: IconDashboard,
     },
   ],
 };
