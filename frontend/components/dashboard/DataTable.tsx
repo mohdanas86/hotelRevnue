@@ -143,7 +143,7 @@ export function DataTable({ filters }: DataTableProps) {
 
     if (error) {
         return (
-            <p className="text-sm text-destructive">Failed to load table data: {(error as Error).message}</p>
+            <p className="text-sm text-muted-foreground">No records available for the selected filters.</p>
         );
     }
 

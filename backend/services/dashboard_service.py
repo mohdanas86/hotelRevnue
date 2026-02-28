@@ -3,6 +3,7 @@ Dashboard service: new aggregation endpoints aligned with the prompt spec.
 All monetary values returned with 2 decimal places; all dates in ISO-8601.
 """
 
+import math
 import pandas as pd
 import logging
 from typing import Dict, Any, Optional
@@ -12,15 +13,34 @@ from services.revenue_service import get_cached_data
 
 logger = logging.getLogger(__name__)
 
-_GRANULARITY_RULES = {"day": "D", "week": "W", "month": "ME"}
+
+def _sanitize_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Replace NaN / ±Inf in numeric columns with 0 before JSON serialisation."""
+    num_cols = df.select_dtypes(include="number").columns
+    df[num_cols] = (
+        df[num_cols]
+        .fillna(0)
+        .replace([math.inf, -math.inf], 0)
+    )
+    return df
+
+
+def _safe_records(df: pd.DataFrame) -> list:
+    """Sanitize a DataFrame and return JSON-safe records."""
+    return _sanitize_df(df.copy()).to_dict(orient="records")
+
+# pandas >= 2.2 renamed "M" → "ME" (month-end). Support both.
+_pd_major, _pd_minor = (int(x) for x in pd.__version__.split(".")[:2])
+_MONTH_RULE = "ME" if (_pd_major, _pd_minor) >= (2, 2) else "M"
+_GRANULARITY_RULES = {"day": "D", "week": "W", "month": _MONTH_RULE}
 
 
 def _resample(df: pd.DataFrame, granularity: str, agg: Dict[str, str]) -> pd.DataFrame:
-    """Resample a date-indexed DataFrame."""
+    """Resample a date-indexed DataFrame. Empty periods get 0 (never NaN)."""
     rule = _GRANULARITY_RULES.get(granularity, "D")
     resampled = df.resample(rule).agg(agg).reset_index()
     resampled["Date"] = resampled["Date"].dt.strftime("%Y-%m-%d")
-    return resampled
+    return _sanitize_df(resampled)
 
 
 def _build_empty(filters, original_count: int, df: pd.DataFrame):
@@ -106,7 +126,7 @@ def get_revenue_over_time(
         result["ADR_INR"] = result["ADR_INR"].round(2)
 
         return {
-            "data": result.to_dict(orient="records"),
+            "data": _safe_records(result),
             "granularity": granularity,
             "filters_applied": filters or {},
             "metadata": get_filter_metadata(df, original_count),
@@ -145,7 +165,7 @@ def get_bookings_by_channel(filters: Optional[Dict[str, Any]] = None) -> Dict[st
         grouped["revenue"] = grouped["revenue"].round(2)
 
         return {
-            "data": grouped.to_dict(orient="records"),
+            "data": _safe_records(grouped),
             "filters_applied": filters or {},
             "metadata": get_filter_metadata(df, original_count),
         }
@@ -185,7 +205,7 @@ def get_bookings_by_segment(filters: Optional[Dict[str, Any]] = None) -> Dict[st
         grouped["avg_adr"] = grouped["avg_adr"].round(2)
 
         return {
-            "data": grouped.to_dict(orient="records"),
+            "data": _safe_records(grouped),
             "filters_applied": filters or {},
             "metadata": get_filter_metadata(df, original_count),
         }
@@ -215,7 +235,7 @@ def get_occupancy_over_time(
         result["Occupancy_Rate"] = (result["Occupancy_Rate"] * 100).round(2)  # 0-100
 
         return {
-            "data": result.to_dict(orient="records"),
+            "data": _safe_records(result),
             "granularity": granularity,
             "filters_applied": filters or {},
             "metadata": get_filter_metadata(df, original_count),
@@ -246,7 +266,7 @@ def get_adr_over_time(
         result["ADR_INR"] = result["ADR_INR"].round(2)
 
         return {
-            "data": result.to_dict(orient="records"),
+            "data": _safe_records(result),
             "granularity": granularity,
             "filters_applied": filters or {},
             "metadata": get_filter_metadata(df, original_count),
@@ -288,7 +308,7 @@ def get_cancellations_over_time(
         result.drop(columns=["Rooms_Sold"], inplace=True)
 
         return {
-            "data": result.to_dict(orient="records"),
+            "data": _safe_records(result),
             "granularity": granularity,
             "filters_applied": filters or {},
             "metadata": get_filter_metadata(df, original_count),
@@ -326,7 +346,7 @@ def get_revenue_by_hotel_dashboard(filters: Optional[Dict[str, Any]] = None, top
         grouped["avg_occupancy"] = (grouped["avg_occupancy"] * 100).round(1)
 
         return {
-            "data": grouped.to_dict(orient="records"),
+            "data": _safe_records(grouped),
             "filters_applied": filters or {},
             "metadata": get_filter_metadata(df, original_count),
         }

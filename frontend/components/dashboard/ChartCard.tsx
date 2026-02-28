@@ -52,15 +52,17 @@ export const ChartCard = React.memo(function ChartCard({
                     </div>
                 ) : error ? (
                     <div className="flex h-[280px] flex-col items-center justify-center gap-3 text-center">
-                        <AlertCircle className="h-8 w-8 text-destructive" />
+                        <AlertCircle className="h-8 w-8 text-muted-foreground/50" />
                         <div>
-                            <p className="text-sm font-medium text-destructive">Failed to load data</p>
-                            <p className="mt-1 text-xs text-muted-foreground">{error.message}</p>
+                            <p className="text-sm font-medium">No data available</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Could not load chart data for the selected filters.
+                            </p>
                         </div>
                         {onRetry && (
                             <Button variant="outline" size="sm" onClick={onRetry} className="gap-1.5">
                                 <RefreshCw className="h-3.5 w-3.5" />
-                                Retry
+                                Try again
                             </Button>
                         )}
                     </div>

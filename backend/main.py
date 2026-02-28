@@ -1,6 +1,7 @@
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
 import logging
 from typing import Optional, Dict, Any
 from datetime import date, datetime
@@ -45,6 +46,32 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"]
 )
+
+# ── CORS-aware global exception handler ────────────────────────────────────
+# Starlette's CORSMiddleware does NOT add CORS headers to unhandled exceptions
+# (i.e. responses it never sees). This handler guarantees every error response
+# carries the correct headers so the browser can read the error body.
+_CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "http://localhost:3000",
+    "Access-Control-Allow-Credentials": "true",
+}
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled exception on {request.url}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal server error: {str(exc)}"},
+        headers=_CORS_HEADERS,
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=_CORS_HEADERS,
+    )
 
 # Add error handling wrapper
 async def handle_service_error(func, *args, **kwargs):
