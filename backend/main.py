@@ -8,6 +8,7 @@ from datetime import date, datetime
 from services import revenue_service
 from services import forecast_service
 from services import insight_service
+from services import dashboard_service
 from models.schemas import (
     KPIResponse, RevenueTrendResponse, OccupancyTrendResponse,
     RevenueByHotelResponse, RevenueByChannelResponse, MarketSegmentResponse,
@@ -397,6 +398,145 @@ async def get_business_insights():
     except Exception as e:
         logger.error(f"Error generating insights: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate insights: {str(e)}")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# NEW DASHBOARD ENDPOINTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _dashboard_filters(
+    hotel_id: Optional[str],
+    start_date: Optional[date],
+    end_date: Optional[date],
+    booking_channel: Optional[str],
+    market_segment: Optional[str],
+) -> Optional[Dict[str, Any]]:
+    return create_filters_dict(hotel_id, start_date, end_date, booking_channel, market_segment)
+
+
+@app.get("/api/dashboard/summary", response_model=Dict[str, Any], tags=["dashboard"])
+async def dashboard_summary(
+    hotel_id: Optional[str] = Query(None),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    booking_channel: Optional[str] = Query(None),
+    market_segment: Optional[str] = Query(None),
+):
+    """Enhanced KPI summary — total revenue, bookings, ADR, RevPAR, occupancy, cancellation rate."""
+    filters = _dashboard_filters(hotel_id, start_date, end_date, booking_channel, market_segment)
+    return await handle_service_error(dashboard_service.get_summary, filters)
+
+
+@app.get("/api/dashboard/revenue-over-time", response_model=Dict[str, Any], tags=["dashboard"])
+async def dashboard_revenue_over_time(
+    granularity: Optional[str] = Query("day", regex="^(day|week|month)$"),
+    hotel_id: Optional[str] = Query(None),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    booking_channel: Optional[str] = Query(None),
+    market_segment: Optional[str] = Query(None),
+):
+    """Revenue grouped by day/week/month."""
+    filters = _dashboard_filters(hotel_id, start_date, end_date, booking_channel, market_segment)
+    return await handle_service_error(
+        dashboard_service.get_revenue_over_time, filters, granularity
+    )
+
+
+@app.get("/api/dashboard/bookings-by-channel", response_model=Dict[str, Any], tags=["dashboard"])
+async def dashboard_bookings_by_channel(
+    hotel_id: Optional[str] = Query(None),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    booking_channel: Optional[str] = Query(None),
+    market_segment: Optional[str] = Query(None),
+):
+    """Bookings and revenue grouped by booking channel."""
+    filters = _dashboard_filters(hotel_id, start_date, end_date, booking_channel, market_segment)
+    return await handle_service_error(dashboard_service.get_bookings_by_channel, filters)
+
+
+@app.get("/api/dashboard/bookings-by-segment", response_model=Dict[str, Any], tags=["dashboard"])
+async def dashboard_bookings_by_segment(
+    hotel_id: Optional[str] = Query(None),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    booking_channel: Optional[str] = Query(None),
+    market_segment: Optional[str] = Query(None),
+):
+    """Bookings and revenue grouped by market segment (guest/room type)."""
+    filters = _dashboard_filters(hotel_id, start_date, end_date, booking_channel, market_segment)
+    return await handle_service_error(dashboard_service.get_bookings_by_segment, filters)
+
+
+@app.get("/api/dashboard/occupancy-over-time", response_model=Dict[str, Any], tags=["dashboard"])
+async def dashboard_occupancy_over_time(
+    granularity: Optional[str] = Query("day", regex="^(day|week|month)$"),
+    hotel_id: Optional[str] = Query(None),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    booking_channel: Optional[str] = Query(None),
+    market_segment: Optional[str] = Query(None),
+):
+    """Occupancy rate (%) over time."""
+    filters = _dashboard_filters(hotel_id, start_date, end_date, booking_channel, market_segment)
+    return await handle_service_error(
+        dashboard_service.get_occupancy_over_time, filters, granularity
+    )
+
+
+@app.get("/api/dashboard/adr-over-time", response_model=Dict[str, Any], tags=["dashboard"])
+async def dashboard_adr_over_time(
+    granularity: Optional[str] = Query("day", regex="^(day|week|month)$"),
+    hotel_id: Optional[str] = Query(None),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    booking_channel: Optional[str] = Query(None),
+    market_segment: Optional[str] = Query(None),
+):
+    """Average Daily Rate trend over time."""
+    filters = _dashboard_filters(hotel_id, start_date, end_date, booking_channel, market_segment)
+    return await handle_service_error(
+        dashboard_service.get_adr_over_time, filters, granularity
+    )
+
+
+@app.get("/api/dashboard/cancellations-over-time", response_model=Dict[str, Any], tags=["dashboard"])
+async def dashboard_cancellations_over_time(
+    granularity: Optional[str] = Query("day", regex="^(day|week|month)$"),
+    hotel_id: Optional[str] = Query(None),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    booking_channel: Optional[str] = Query(None),
+    market_segment: Optional[str] = Query(None),
+):
+    """Cancellation count and rate over time."""
+    filters = _dashboard_filters(hotel_id, start_date, end_date, booking_channel, market_segment)
+    return await handle_service_error(
+        dashboard_service.get_cancellations_over_time, filters, granularity
+    )
+
+
+@app.get("/api/dashboard/revenue-by-hotel", response_model=Dict[str, Any], tags=["dashboard"])
+async def dashboard_revenue_by_hotel(
+    top_n: Optional[int] = Query(10, ge=1, le=50),
+    hotel_id: Optional[str] = Query(None),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    booking_channel: Optional[str] = Query(None),
+    market_segment: Optional[str] = Query(None),
+):
+    """Revenue breakdown by hotel (top N)."""
+    filters = _dashboard_filters(hotel_id, start_date, end_date, booking_channel, market_segment)
+    return await handle_service_error(
+        dashboard_service.get_revenue_by_hotel_dashboard, filters, top_n
+    )
+
+
+@app.get("/api/filters/options", response_model=Dict[str, Any], tags=["filters"])
+async def get_filter_options():
+    """All available filter options from real data: hotels, channels, segments, date range."""
+    return await handle_service_error(dashboard_service.get_filter_options)
+
 
 @app.post("/api/insights/refresh", tags=["analytics"])
 async def refresh_insights():
